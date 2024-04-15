@@ -16,21 +16,6 @@ public class GameManagerScript : MonoBehaviour {
     int[,] map;
     GameObject[,] filed;
 
-    /// --------------------
-    /// ↓ mapの配列をまとめてconsoleに出力 Method
-    /// --------------------
-    void PrintArray() {
-        string debugText = "";
-        for (int row = 0; row < map.GetLength(0); row++) {
-            for (int col = 0; col < map.GetLength(1); col++) {
-                debugText += map[row, col].ToString() + ", ";
-            }
-            debugText += "\n";
-        }
-        Debug.Log(debugText);
-    }
-
-
 
     /// --------------------
     /// ↓ PlayerのIndexを返す
@@ -39,10 +24,10 @@ public class GameManagerScript : MonoBehaviour {
         for (int row = 0; row < map.GetLength(0); row++) {
             for (int col = 0; col < map.GetLength(1); col++) {
                 ///- NULLチェック
-                if (!filed[row, col]) { continue; }
+                if (filed[row, col] == null) { continue; }
                 ///- Tagチェック; タグがPlayerかどうか
                 if (filed[row, col].tag == "Player") {
-                    return new Vector2Int(row, col);
+                    return new Vector2Int(col, row);
                 }
             }
         }
@@ -56,10 +41,10 @@ public class GameManagerScript : MonoBehaviour {
     /// --------------------
     bool MoveNumber(string tag, Vector2Int moveForm, Vector2Int moveTo) {
         ///- 配列外参照をしていたら false を返す
-        if (moveTo.x < 0 || moveTo.x >= map.GetLength(0)) { return false; }
-        if (moveTo.y < 0 || moveTo.y >= map.GetLength(1)) { return false; }
+        if (moveTo.x < 0 || moveTo.x >= map.GetLength(1)) { return false; }
+        if (moveTo.y < 0 || moveTo.y >= map.GetLength(0)) { return false; }
 
-        //if (filed[moveForm.y, moveForm.x].tag != tag) { return false; }
+        if (filed[moveForm.y, moveForm.x].tag != tag) { return false; }
 
         ///- 箱(2)があったときの処理
         //if (map[moveTo] == 2) {
@@ -70,13 +55,15 @@ public class GameManagerScript : MonoBehaviour {
         //    if (!success) { return false; }
         //}
 
+        map[moveTo.y, moveTo.x] = 1;
+        map[moveForm.y, moveForm.x] = 0;
+
+        ///- 実際の位置を入れ替え
+        filed[moveForm.y, moveForm.x].transform.position = new Vector3(moveTo.x, moveTo.y, 0);
+
         ///- 配列上の値を入れ替え
         filed[moveTo.y, moveTo.x] = filed[moveForm.y, moveForm.x];
         filed[moveForm.y, moveForm.x] = null;
-
-        ///- 実際の位置を入れ替え
-        filed[moveForm.y, moveForm.x].transform.position =
-            new Vector3(moveTo.x, filed.GetLength(0) - moveTo.y, 0);
 
         return true;
     }
@@ -105,7 +92,7 @@ public class GameManagerScript : MonoBehaviour {
         for (int row = 0; row < map.GetLength(0); row++) {
             for (int col = 0; col < map.GetLength(1); col++) {
                 if (map[row, col] == 1) {
-                    GameObject instance = Instantiate(
+                    filed[row, col] = Instantiate(
                         playerPrefab,
                         new Vector3(col, map.GetLength(0) - row, 0),
                         Quaternion.identity
@@ -113,9 +100,6 @@ public class GameManagerScript : MonoBehaviour {
                 }
             }
         }
-
-        PrintArray();
-
 
 
     }
@@ -131,7 +115,6 @@ public class GameManagerScript : MonoBehaviour {
         if (Input.GetKeyUp(KeyCode.RightArrow)) {
             Vector2Int playerIndex = GetPlayerIndex();
             MoveNumber("Player", playerIndex, playerIndex + Vector2Int.right);
-            PrintArray();
         }
 
 
@@ -141,7 +124,6 @@ public class GameManagerScript : MonoBehaviour {
         if (Input.GetKeyUp(KeyCode.LeftArrow)) {
             Vector2Int playerIndex = GetPlayerIndex();
             MoveNumber("Player", playerIndex, playerIndex + Vector2Int.left);
-            PrintArray();
         }
 
 
@@ -152,7 +134,6 @@ public class GameManagerScript : MonoBehaviour {
         if (Input.GetKeyUp(KeyCode.UpArrow)) {
             Vector2Int playerIndex = GetPlayerIndex();
             MoveNumber("Player", playerIndex, playerIndex + Vector2Int.up);
-            PrintArray();
         }
 
 
@@ -162,7 +143,6 @@ public class GameManagerScript : MonoBehaviour {
         if (Input.GetKeyUp(KeyCode.DownArrow)) {
             Vector2Int playerIndex = GetPlayerIndex();
             MoveNumber("Player", playerIndex, playerIndex + Vector2Int.down);
-            PrintArray();
         }
 
 
