@@ -27,7 +27,7 @@ public class GameManagerScript : MonoBehaviour {
 
 
 	Vector3 GetPosition(int row, int col) {
-		return new Vector3(col - map.GetLength(1) / 2.0f, row - map.GetLength(0) / 2.0f, 0.0f);
+		return new Vector3(col - map.GetLength(1) / 2.0f + 0.5f, row - map.GetLength(0) / 2.0f, 0.0f);
 	}
 
 
