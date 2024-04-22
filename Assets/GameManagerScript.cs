@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq.Expressions;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Unity.VisualScripting;
@@ -22,6 +23,13 @@ public class GameManagerScript : MonoBehaviour {
 	public GameObject goalPrefab;
 
 	public GameObject particlePrefab;
+
+
+
+	Vector3 GetPosition(int row, int col) {
+		return new Vector3(col - map.GetLength(1) / 2.0f, row - map.GetLength(0) / 2.0f, 0.0f);
+	}
+
 
 
 	/// ====================================================
@@ -64,7 +72,8 @@ public class GameManagerScript : MonoBehaviour {
 
 
 		///- 実際の位置を入れ替え
-		filed[moveForm.y, moveForm.x].transform.position = new Vector3(moveTo.x, map.GetLength(0) - moveTo.y, 0);
+		//filed[moveForm.y, moveForm.x].transform.position = new Vector3(moveTo.x, map.GetLength(0) - moveTo.y, 0);
+		filed[moveForm.y, moveForm.x].transform.position = GetPosition(map.GetLength(0) - moveTo.y, moveTo.x);
 
 		///- 配列上の値を入れ替え
 		filed[moveTo.y, moveTo.x] = filed[moveForm.y, moveForm.x];
@@ -77,9 +86,9 @@ public class GameManagerScript : MonoBehaviour {
 
 				Instantiate(
 					particlePrefab,
-					new Vector3(moveTo.x, map.GetLength(0) - moveTo.y, 0.01f),
+					GetPosition(map.GetLength(0) - moveTo.y, moveTo.x) + new Vector3(0.0f, 0.0f, -0.0f),
 					Quaternion.identity
-				);
+				); ;
 
 			}
 		}
@@ -124,6 +133,52 @@ public class GameManagerScript : MonoBehaviour {
 
 
 	/// ====================================================
+	/// ↓ Reset用関数
+	/// ====================================================
+	void Reset() {
+
+
+		///- Filedをすべてnullにする
+		for (int y = 0; y < map.GetLength(0); y++) {
+			for (int x = 0; x < map.GetLength(1); x++) {
+				//filed[y, x] = null;
+				Destroy(filed[y, x]);
+			}
+		}
+
+
+		/// ----------------------
+		/// ↓ Objectの位置を初期化
+		/// ----------------------
+		for (int row = 0; row < map.GetLength(0); row++) {
+			for (int col = 0; col < map.GetLength(1); col++) {
+
+				switch (map[row, col]) {
+				case 1: ///- Playre
+					filed[row, col] = Instantiate(
+						playerPrefab,
+						GetPosition(map.GetLength(0) - row, col),
+						Quaternion.identity
+					);
+					break;
+				case 2: ///- Box
+					filed[row, col] = Instantiate(
+						boxPrefab,
+						GetPosition(map.GetLength(0) - row, col),
+						Quaternion.identity
+					);
+					break;
+				}
+			}
+		}
+
+
+
+	}
+
+
+
+	/// ====================================================
 	/// ↓ Initializer Method
 	/// ====================================================
 	void Start() {
@@ -160,21 +215,21 @@ public class GameManagerScript : MonoBehaviour {
 				case 1: ///- Playre
 					filed[row, col] = Instantiate(
 						playerPrefab,
-						new Vector3(col, map.GetLength(0) - row, 0),
+						GetPosition(map.GetLength(0) - row, col),
 						Quaternion.identity
 					);
 					break;
 				case 2: ///- Box
 					filed[row, col] = Instantiate(
 						boxPrefab,
-						new Vector3(col, map.GetLength(0) - row, 0),
+						GetPosition(map.GetLength(0) - row, col),
 						Quaternion.identity
 					);
 					break;
 				case 3: ///- Goal
 					Instantiate(
 						goalPrefab,
-						new Vector3(col, map.GetLength(0) - row, 0.01f),
+						GetPosition(map.GetLength(0) - row, col) + new Vector3(0.0f, 0.0f, 0.01f),
 						Quaternion.identity
 					);
 
@@ -194,6 +249,19 @@ public class GameManagerScript : MonoBehaviour {
 	/// ↓ Update Method
 	/// ====================================================
 	void Update() {
+
+
+
+		/// --------------------
+		/// ↓ Reset
+		/// --------------------
+		if (Input.GetKeyUp(KeyCode.R)) {
+			Reset();
+		}
+
+
+
+
 
 		/// --------------------
 		/// ↓ 右へ移動
