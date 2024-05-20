@@ -225,9 +225,17 @@ public class GameManagerScript : MonoBehaviour {
 			for (int x = 0; x < filed.GetLength(0); ++x) {
 
 				if (copy[y, x] != null) {
-					filed[y, x] = copy[y, x];
-					//filed[y, x].tag = copy[y, x].tag;
+					filed[y, x] = copy[y, x].gameObject;
 					filed[y, x].transform.position = GetPosition(y, x);
+				}
+			}
+		}
+
+		for (int y = 0; y < filed.GetLength(1); ++y) {
+			for (int x = 0; x < filed.GetLength(0); ++x) {
+
+				if (copy[y, x] == null) {
+					filed[y, x] = null;
 				}
 			}
 		}
