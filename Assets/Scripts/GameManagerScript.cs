@@ -9,6 +9,8 @@ using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 
+using UnityEngine.SceneManagement;
+
 public class GameManagerScript : MonoBehaviour {
 
 	/// --------------------
@@ -26,6 +28,8 @@ public class GameManagerScript : MonoBehaviour {
 	public GameObject particlePrefab;
 	public GameObject wallPrefab;
 
+	bool isClear = false;
+	public string nextSceneName;
 
 	Stack<GameObject[,]> filedLists = new Stack<GameObject[,]>();
 
@@ -78,6 +82,7 @@ public class GameManagerScript : MonoBehaviour {
 			bool success = MoveNumber("Box", moveTo, moveTo + velocity);
 			///- ” ‚ªˆÚ“®‚Å‚«‚È‚¯‚ê‚ÎPlayer‚àˆÚ“®‚Å‚«‚È‚¢
 			if (!success) { return false; }
+			filed[moveTo.y + velocity.y, moveTo.x + velocity.x].GetComponent<AudioSource>().Play();
 		}
 
 
@@ -334,8 +339,13 @@ public class GameManagerScript : MonoBehaviour {
 	void Update() {
 
 
-		if (IsCleard()) {
+		if (isClear) {
 			clearText.SetActive(true);
+
+			if (Input.GetKeyUp(KeyCode.Space)) {
+				SceneManager.LoadScene(nextSceneName);
+			}
+
 			return;
 		}
 
@@ -404,6 +414,10 @@ public class GameManagerScript : MonoBehaviour {
 		}
 
 
+		isClear = IsCleard();
+		if(isClear) {
+			GetComponent<AudioSource>().Play();
+		}
 
 	}
 }
