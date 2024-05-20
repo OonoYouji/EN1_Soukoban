@@ -82,8 +82,8 @@ public class GameManagerScript : MonoBehaviour {
 
 
 		///- 実際の位置を入れ替え
-		//filed[moveForm.y, moveForm.x].transform.position = new Vector3(moveTo.x, map.GetLength(0) - moveTo.y, 0);
-		filed[moveForm.y, moveForm.x].transform.position = GetPosition(moveTo.y, moveTo.x);
+		Vector3 moveToPosition = GetPosition(moveTo.y, moveTo.x);
+		filed[moveForm.y, moveForm.x].GetComponent<Move>().MoveTo(moveToPosition);
 
 		///- 配列上の値を入れ替え
 		filed[moveTo.y, moveTo.x] = filed[moveForm.y, moveForm.x];
@@ -97,12 +97,13 @@ public class GameManagerScript : MonoBehaviour {
 			Vector3 to = new Vector3(moveTo.x, -moveTo.y, 0.0f);
 
 			filed[moveTo.y, moveTo.x].transform.rotation = Quaternion.LookRotation(to - form, Vector3.back);
+			filed[moveTo.y, moveTo.x].GetComponent<AudioSource>().Play();
 
 			for (int i = 0; i < 20; i++) {
 
 				Instantiate(
 					particlePrefab,
-					GetPosition(moveTo.y, moveTo.x) + new Vector3(0.0f, 0.0f, -0.0f),
+					GetPosition(moveForm.y, moveForm.x) + new Vector3(0.0f, 0.0f, -0.0f),
 					Quaternion.identity
 				); ;
 
@@ -153,7 +154,6 @@ public class GameManagerScript : MonoBehaviour {
 	/// ====================================================
 	void Reset() {
 
-
 		///- Filedをすべてnullにする
 		for (int y = 0; y < map.GetLength(1); y++) {
 			for (int x = 0; x < map.GetLength(0); x++) {
@@ -161,7 +161,6 @@ public class GameManagerScript : MonoBehaviour {
 				Destroy(filed[y, x]);
 			}
 		}
-
 
 		/// ----------------------
 		/// ↓ Objectの位置を初期化
@@ -198,7 +197,6 @@ public class GameManagerScript : MonoBehaviour {
 		}
 
 
-
 	}
 
 
@@ -210,23 +208,15 @@ public class GameManagerScript : MonoBehaviour {
 
 		if (filedLists.Count <= 1) { return; }
 
-		//for (int y = 0; y < filed.GetLength(1); ++y) {
-		//	for (int x = 0; x < filed.GetLength(0); ++x) {
-		//		if (filed[y, x] != null && filed[y, x].tag != "Wall") {
-		//			Destroy(filed[y, x]);
-		//		}
-		//	}
-		//}
-
-
 		GameObject[,] copy = CopyFiled(filedLists.Pop());
 
 		for (int y = 0; y < filed.GetLength(1); ++y) {
 			for (int x = 0; x < filed.GetLength(0); ++x) {
 
-				if (copy[y, x] != null) {
+				if (copy[y, x] != null && copy[y, x].tag != "Wall") {
 					filed[y, x] = copy[y, x].gameObject;
-					filed[y, x].transform.position = GetPosition(y, x);
+					Vector3 moveTo = GetPosition(y, x);
+					filed[y, x].GetComponent<Move>().MoveTo(moveTo);
 				}
 			}
 		}
@@ -268,19 +258,16 @@ public class GameManagerScript : MonoBehaviour {
 		///- windowフルスクリーンなどの設定
 		Screen.SetResolution(1920, 1080, false);
 
-
-
 		/// 配列の初期化; new をしても deleteの必要がない;
 		map = new int[,] {
 			{ 9, 9, 9, 9, 9, 9, 9},
 			{ 9, 0, 0, 0, 0, 0, 9},
-			{ 9, 0, 3, 1, 3, 0, 9},
+			{ 9, 0, 3, 1, 3, 9, 9},
 			{ 9, 0, 2, 0, 2, 0, 9},
 			{ 9, 0, 0, 3, 2, 0, 9},
 			{ 9, 0, 0, 0, 0, 0, 9},
 			{ 9, 9, 9, 9, 9, 9, 9},
 		};
-		//PrintArray();
 
 		///- GameObject型配列をmapと同じ大きさに初期化
 		filed = new GameObject[
@@ -337,8 +324,6 @@ public class GameManagerScript : MonoBehaviour {
 
 		filedLists.Push(filed);
 
-
-
 	}
 
 
@@ -349,6 +334,10 @@ public class GameManagerScript : MonoBehaviour {
 	void Update() {
 
 
+		if (IsCleard()) {
+			clearText.SetActive(true);
+			return;
+		}
 
 		/// --------------------
 		/// ↓ Reset
@@ -415,10 +404,6 @@ public class GameManagerScript : MonoBehaviour {
 		}
 
 
-		if (IsCleard()) {
-			//Debug.Log("CLEAR!!!");
-			clearText.SetActive(true);
-		}
 
 	}
 }
