@@ -1,9 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Dynamic;
+using System.IO;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Unity.VisualScripting;
+using UnityEditor;
 using UnityEngine;
 
 public class GameManagerScript : MonoBehaviour {
@@ -24,15 +27,14 @@ public class GameManagerScript : MonoBehaviour {
 	public GameObject wallPrefab;
 
 
-	List<GameObject[,]> filedLists = new List<GameObject[,]>();
-
-
+	Stack<GameObject[,]> filedLists = new Stack<GameObject[,]>();
 
 	/// ====================================================
 	/// ↓ indexから現在の位置を求める
 	/// ====================================================
 	Vector3 GetPosition(int row, int col) {
-		return new Vector3(col - map.GetLength(1) / 2.0f + 0.5f, row - map.GetLength(0) / 2.0f, 0.0f);
+		//return new Vector3(row - map.GetLength(1) / 2.0f + 0.5f, col - map.GetLength(0) / 2.0f, 0.0f);
+		return new Vector3(col - map.GetLength(1) / 2.0f + 0.5f, -row + map.GetLength(0) / 2.0f, 0.0f);
 	}
 
 
@@ -81,7 +83,7 @@ public class GameManagerScript : MonoBehaviour {
 
 		///- 実際の位置を入れ替え
 		//filed[moveForm.y, moveForm.x].transform.position = new Vector3(moveTo.x, map.GetLength(0) - moveTo.y, 0);
-		filed[moveForm.y, moveForm.x].transform.position = GetPosition(map.GetLength(0) - moveTo.y, moveTo.x);
+		filed[moveForm.y, moveForm.x].transform.position = GetPosition(moveTo.y, moveTo.x);
 
 		///- 配列上の値を入れ替え
 		filed[moveTo.y, moveTo.x] = filed[moveForm.y, moveForm.x];
@@ -100,7 +102,7 @@ public class GameManagerScript : MonoBehaviour {
 
 				Instantiate(
 					particlePrefab,
-					GetPosition(map.GetLength(0) - moveTo.y, moveTo.x) + new Vector3(0.0f, 0.0f, -0.0f),
+					GetPosition(moveTo.y, moveTo.x) + new Vector3(0.0f, 0.0f, -0.0f),
 					Quaternion.identity
 				); ;
 
@@ -121,8 +123,8 @@ public class GameManagerScript : MonoBehaviour {
 
 
 		///- Goalの場所を格納
-		for (int y = 0; y < map.GetLength(0); y++) {
-			for (int x = 0; x < map.GetLength(1); x++) {
+		for (int y = 0; y < map.GetLength(1); y++) {
+			for (int x = 0; x < map.GetLength(0); x++) {
 
 				///- 格納場所かどうか
 				if (map[y, x] == 3) {
@@ -153,8 +155,8 @@ public class GameManagerScript : MonoBehaviour {
 
 
 		///- Filedをすべてnullにする
-		for (int y = 0; y < map.GetLength(0); y++) {
-			for (int x = 0; x < map.GetLength(1); x++) {
+		for (int y = 0; y < map.GetLength(1); y++) {
+			for (int x = 0; x < map.GetLength(0); x++) {
 				//filed[y, x] = null;
 				Destroy(filed[y, x]);
 			}
@@ -164,21 +166,21 @@ public class GameManagerScript : MonoBehaviour {
 		/// ----------------------
 		/// ↓ Objectの位置を初期化
 		/// ----------------------
-		for (int row = 0; row < map.GetLength(0); row++) {
-			for (int col = 0; col < map.GetLength(1); col++) {
+		for (int row = 0; row < map.GetLength(1); row++) {
+			for (int col = 0; col < map.GetLength(0); col++) {
 
 				switch (map[row, col]) {
 				case 1: ///- Playre
 					filed[row, col] = Instantiate(
 						playerPrefab,
-						GetPosition(map.GetLength(0) - row, col),
+						GetPosition(row, col),
 						Quaternion.LookRotation(new Vector3(0.0f, 1.0f, 0.0f))
 					);
 					break;
 				case 2: ///- Box
 					filed[row, col] = Instantiate(
 						boxPrefab,
-						GetPosition(map.GetLength(0) - row, col),
+						GetPosition(row, col),
 						Quaternion.identity
 					);
 					break;
@@ -186,7 +188,7 @@ public class GameManagerScript : MonoBehaviour {
 
 					filed[row, col] = Instantiate(
 						wallPrefab,
-						GetPosition(map.GetLength(0) - row, col),
+						GetPosition(row, col),
 						Quaternion.identity
 					);
 
@@ -206,21 +208,47 @@ public class GameManagerScript : MonoBehaviour {
 	/// ====================================================
 	void Undo() {
 
-		///- Filedをすべてnullにする
-		for (int y = 0; y < map.GetLength(0); y++) {
-			for (int x = 0; x < map.GetLength(1); x++) {
-				Destroy(filed[y, x]);
-				filed[y, x] = null;
+		if (filedLists.Count <= 1) { return; }
+
+		//for (int y = 0; y < filed.GetLength(1); ++y) {
+		//	for (int x = 0; x < filed.GetLength(0); ++x) {
+		//		if (filed[y, x] != null && filed[y, x].tag != "Wall") {
+		//			Destroy(filed[y, x]);
+		//		}
+		//	}
+		//}
+
+
+		GameObject[,] copy = CopyFiled(filedLists.Pop());
+
+		for (int y = 0; y < filed.GetLength(1); ++y) {
+			for (int x = 0; x < filed.GetLength(0); ++x) {
+
+				if (copy[y, x] != null) {
+					filed[y, x] = copy[y, x];
+					//filed[y, x].tag = copy[y, x].tag;
+					filed[y, x].transform.position = GetPosition(y, x);
+				}
 			}
 		}
 
-
-		filed = filedLists[filedLists.Count - 1];
-		filedLists.RemoveAt(filedLists.Count - 1);
-
-
 	}
 
+
+	/// ------------------------------------
+	/// 引数のGameObject型の二次元配列をコピーする
+	/// ------------------------------------
+	GameObject[,] CopyFiled(GameObject[,] copyFrom) {
+		GameObject[,] result = new GameObject[copyFrom.GetLength(0), copyFrom.GetLength(1)];
+
+		for (int y = 0; y < copyFrom.GetLength(1); ++y) {
+			for (int x = 0; x < copyFrom.GetLength(0); ++x) {
+				result[y, x] = copyFrom[y, x];
+			}
+		}
+
+		return result;
+	}
 
 
 	/// ====================================================
@@ -252,34 +280,32 @@ public class GameManagerScript : MonoBehaviour {
 			map.GetLength(1)
 		];
 
-		filedLists.Add(new GameObject[
-			map.GetLength(0),
-			map.GetLength(1)
-		]);
+
 
 		///- Objectの初期位置を設定
-		for (int row = 0; row < map.GetLength(0); row++) {
-			for (int col = 0; col < map.GetLength(1); col++) {
+		for (int row = 0; row < map.GetLength(1); row++) {
+			for (int col = 0; col < map.GetLength(0); col++) {
 
 				switch (map[row, col]) {
 				case 1: ///- Player
 					filed[row, col] = Instantiate(
 						playerPrefab,
-						GetPosition(map.GetLength(0) - row, col),
+						GetPosition(row, col),
 						Quaternion.LookRotation(new Vector3(0.0f, 1.0f, 0.0f))
 					);
+
 					break;
 				case 2: ///- Box
 					filed[row, col] = Instantiate(
 						boxPrefab,
-						GetPosition(map.GetLength(0) - row, col),
+						GetPosition(row, col),
 						Quaternion.identity
 					);
 					break;
 				case 3: ///- Goal
 					Instantiate(
 						goalPrefab,
-						GetPosition(map.GetLength(0) - row, col) + new Vector3(0.0f, 0.0f, 0.01f),
+						GetPosition(row, col) + new Vector3(0.0f, 0.0f, 0.01f),
 						Quaternion.identity
 					);
 
@@ -288,7 +314,7 @@ public class GameManagerScript : MonoBehaviour {
 
 					filed[row, col] = Instantiate(
 						wallPrefab,
-						GetPosition(map.GetLength(0) - row, col),
+						GetPosition(row, col),
 						Quaternion.identity
 					);
 
@@ -301,7 +327,7 @@ public class GameManagerScript : MonoBehaviour {
 
 
 
-		filedLists.Add(filed);
+		filedLists.Push(filed);
 
 
 
@@ -337,8 +363,9 @@ public class GameManagerScript : MonoBehaviour {
 		/// --------------------
 		if (Input.GetKeyUp(KeyCode.RightArrow)) {
 			Vector2Int playerIndex = GetPlayerIndex();
+			GameObject[,] copy = CopyFiled(filed);
 			if (MoveNumber("Player", playerIndex, playerIndex + Vector2Int.right)) {
-				filedLists.Add(filed);
+				filedLists.Push(copy);
 			}
 		}
 
@@ -348,8 +375,9 @@ public class GameManagerScript : MonoBehaviour {
 		/// --------------------
 		if (Input.GetKeyUp(KeyCode.LeftArrow)) {
 			Vector2Int playerIndex = GetPlayerIndex();
+			GameObject[,] copy = CopyFiled(filed);
 			if (MoveNumber("Player", playerIndex, playerIndex + Vector2Int.left)) {
-				filedLists.Add(filed);
+				filedLists.Push(copy);
 			}
 		}
 
@@ -360,8 +388,9 @@ public class GameManagerScript : MonoBehaviour {
 		/// --------------------
 		if (Input.GetKeyUp(KeyCode.UpArrow)) {
 			Vector2Int playerIndex = GetPlayerIndex();
+			GameObject[,] copy = CopyFiled(filed);
 			if (MoveNumber("Player", playerIndex, playerIndex + Vector2Int.down)) {
-				filedLists.Add(filed);
+				filedLists.Push(copy);
 			}
 		}
 
@@ -371,8 +400,9 @@ public class GameManagerScript : MonoBehaviour {
 		/// --------------------
 		if (Input.GetKeyUp(KeyCode.DownArrow)) {
 			Vector2Int playerIndex = GetPlayerIndex();
+			GameObject[,] copy = CopyFiled(filed);
 			if (MoveNumber("Player", playerIndex, playerIndex + Vector2Int.up)) {
-				filedLists.Add(filed);
+				filedLists.Push(copy);
 			}
 		}
 
