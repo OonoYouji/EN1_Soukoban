@@ -261,7 +261,7 @@ public class GameManagerScript : MonoBehaviour {
 
 
 		///- windowフルスクリーンなどの設定
-		Screen.SetResolution(1920, 1080, false);
+		//Screen.SetResolution(1920, 1080, false);
 
 		/// 配列の初期化; new をしても deleteの必要がない;
 		map = new int[,] {
@@ -360,7 +360,7 @@ public class GameManagerScript : MonoBehaviour {
 		/// --------------------
 		/// ↓ Undo
 		/// --------------------
-		if (Input.GetKeyUp(KeyCode.U)) {
+		if (Input.GetKeyUp(KeyCode.Q)) {
 			Undo();
 		}
 
